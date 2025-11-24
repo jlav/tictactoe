@@ -5,4 +5,4 @@ services:
     runtime: python
     repo: https://github.com/jlav/tictactoe.git
     buildCommand: 'uv sync --no-dev'
-    startCommand: 'uv run uvicorn main:app --port 10000'
+    startCommand: 'uv run uvicorn main:app --port 10000 --host 0.0.0.0'
