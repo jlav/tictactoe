@@ -11,12 +11,15 @@ app = FastAPI(title="Tic Tac Toe API")
 # Pydantic Models
 # ============================================================================
 
+
 class CreateRoomResponse(BaseModel):
     room_id: str
     player: str
 
+
 class JoinRoomResponse(BaseModel):
     player: str
+
 
 class GameStateResponse(BaseModel):
     board: List[Optional[str]]
@@ -25,12 +28,15 @@ class GameStateResponse(BaseModel):
     winner: Optional[str]
     players_connected: int
 
+
 class MoveMessage(BaseModel):
     position: int
+
 
 # ============================================================================
 # Game State Data Structure
 # ============================================================================
+
 
 class GameState:
     def __init__(self):
@@ -46,8 +52,9 @@ class GameState:
             "status": self.status,
             "current_turn": self.current_turn,
             "winner": self.winner,
-            "players_connected": sum(1 for p in self.players.values() if p is not None)
+            "players_connected": sum(1 for p in self.players.values() if p is not None),
         }
+
 
 # ============================================================================
 # In-Memory Storage
@@ -59,13 +66,19 @@ games: Dict[str, GameState] = {}
 # Game Logic Helpers
 # ============================================================================
 
+
 def check_winner(board: List[Optional[str]]) -> Optional[str]:
     """Check if there's a winner. Returns 'X', 'O', or None."""
     # Define winning combinations (rows, columns, diagonals)
     winning_combos = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
-        [0, 4, 8], [2, 4, 6]              # diagonals
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],  # rows
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],  # columns
+        [0, 4, 8],
+        [2, 4, 6],  # diagonals
     ]
 
     for combo in winning_combos:
@@ -74,9 +87,11 @@ def check_winner(board: List[Optional[str]]) -> Optional[str]:
 
     return None
 
+
 def check_draw(board: List[Optional[str]]) -> bool:
     """Check if the board is full (draw condition)."""
     return all(cell is not None for cell in board)
+
 
 def validate_move(board: List[Optional[str]], position: int) -> bool:
     """Validate if a move is legal."""
@@ -84,12 +99,10 @@ def validate_move(board: List[Optional[str]], position: int) -> bool:
         return False
     return board[position] is None
 
+
 async def broadcast_state(game: GameState):
     """Send current game state to all connected players."""
-    state_message = json.dumps({
-        "type": "game_state",
-        "data": game.to_dict()
-    })
+    state_message = json.dumps({"type": "game_state", "data": game.to_dict()})
 
     for player_ws in game.players.values():
         if player_ws:
@@ -98,17 +111,16 @@ async def broadcast_state(game: GameState):
             except:
                 pass  # Connection might be closed
 
+
 async def end_game(room_id: str, reason: str = "disconnection"):
     """End a game and notify players."""
     if room_id in games:
         game = games[room_id]
         game.status = "finished"
 
-        end_message = json.dumps({
-            "type": "game_ended",
-            "reason": reason,
-            "data": game.to_dict()
-        })
+        end_message = json.dumps(
+            {"type": "game_ended", "reason": reason, "data": game.to_dict()}
+        )
 
         for player_ws in game.players.values():
             if player_ws:
@@ -121,9 +133,11 @@ async def end_game(room_id: str, reason: str = "disconnection"):
         # Clean up the game from memory
         del games[room_id]
 
+
 # ============================================================================
 # REST API Endpoints
 # ============================================================================
+
 
 @app.post("/rooms", response_model=CreateRoomResponse)
 async def create_room():
@@ -131,10 +145,8 @@ async def create_room():
     room_id = str(uuid4())
     games[room_id] = GameState()
 
-    return CreateRoomResponse(
-        room_id=room_id,
-        player="X"
-    )
+    return CreateRoomResponse(room_id=room_id, player="X")
+
 
 @app.get("/rooms/{room_id}", response_model=GameStateResponse)
 async def get_room_status(room_id: str):
@@ -144,6 +156,7 @@ async def get_room_status(room_id: str):
 
     game = games[room_id]
     return GameStateResponse(**game.to_dict())
+
 
 @app.post("/rooms/{room_id}/join", response_model=JoinRoomResponse)
 async def join_room(room_id: str):
@@ -161,9 +174,11 @@ async def join_room(room_id: str):
 
     return JoinRoomResponse(player="O")
 
+
 # ============================================================================
 # WebSocket Endpoint
 # ============================================================================
+
 
 @app.websocket("/ws/{room_id}/{player}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, player: str):
@@ -209,26 +224,23 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player: str):
 
                 # Validate it's the player's turn
                 if game.current_turn != player:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Not your turn"
-                    }))
+                    await websocket.send_text(
+                        json.dumps({"type": "error", "message": "Not your turn"})
+                    )
                     continue
 
                 # Validate game is active
                 if game.status != "active":
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Game is not active"
-                    }))
+                    await websocket.send_text(
+                        json.dumps({"type": "error", "message": "Game is not active"})
+                    )
                     continue
 
                 # Validate move
                 if not validate_move(game.board, position):
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Invalid move"
-                    }))
+                    await websocket.send_text(
+                        json.dumps({"type": "error", "message": "Invalid move"})
+                    )
                     continue
 
                 # Make the move
@@ -266,6 +278,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player: str):
         # Handle any other errors
         game.players[player] = None
         await end_game(room_id, reason="error")
+
 
 # ============================================================================
 # Static Files - Mount after all API routes

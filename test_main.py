@@ -5,6 +5,7 @@ import json
 
 client = TestClient(app)
 
+
 @pytest.fixture(autouse=True)
 def clear_games():
     """Clear the games dictionary before each test."""
@@ -12,9 +13,11 @@ def clear_games():
     yield
     games.clear()
 
+
 # ============================================================================
 # Test Game Logic Helpers
 # ============================================================================
+
 
 def test_check_winner_horizontal():
     """Test horizontal win detection."""
@@ -24,6 +27,7 @@ def test_check_winner_horizontal():
     board = [None, None, None, "O", "O", "O", None, None, None]
     assert check_winner(board) == "O"
 
+
 def test_check_winner_vertical():
     """Test vertical win detection."""
     board = ["X", None, None, "X", None, None, "X", None, None]
@@ -31,6 +35,7 @@ def test_check_winner_vertical():
 
     board = [None, "O", None, None, "O", None, None, "O", None]
     assert check_winner(board) == "O"
+
 
 def test_check_winner_diagonal():
     """Test diagonal win detection."""
@@ -40,10 +45,12 @@ def test_check_winner_diagonal():
     board = [None, None, "O", None, "O", None, "O", None, None]
     assert check_winner(board) == "O"
 
+
 def test_check_winner_no_winner():
     """Test no winner condition."""
     board = ["X", "O", "X", "O", "X", "O", "O", "X", "O"]
     assert check_winner(board) is None
+
 
 def test_check_draw():
     """Test draw detection."""
@@ -52,6 +59,7 @@ def test_check_draw():
 
     board = ["X", "O", "X", None, "X", "O", "O", "X", "O"]
     assert check_draw(board) is False
+
 
 def test_validate_move():
     """Test move validation."""
@@ -62,15 +70,18 @@ def test_validate_move():
     assert validate_move(board, 9) is False  # Out of bounds
     assert validate_move(board, -1) is False  # Out of bounds
 
+
 # ============================================================================
 # Test REST Endpoints
 # ============================================================================
+
 
 def test_root():
     """Test root endpoint."""
     response = client.get("/")
     assert response.status_code == 200
     assert "Tic Tac Toe API" in response.json()["message"]
+
 
 def test_create_room():
     """Test room creation."""
@@ -84,6 +95,7 @@ def test_create_room():
     # Verify room exists in storage
     room_id = data["room_id"]
     assert room_id in games
+
 
 def test_get_room_status():
     """Test getting room status."""
@@ -102,10 +114,12 @@ def test_get_room_status():
     assert data["players_connected"] == 0
     assert len(data["board"]) == 9
 
+
 def test_get_room_status_not_found():
     """Test getting status of non-existent room."""
     response = client.get("/rooms/invalid-room-id")
     assert response.status_code == 404
+
 
 def test_join_room():
     """Test joining a room."""
@@ -118,14 +132,17 @@ def test_join_room():
     assert response.status_code == 200
     assert response.json()["player"] == "O"
 
+
 def test_join_room_not_found():
     """Test joining a non-existent room."""
     response = client.post("/rooms/invalid-room-id/join")
     assert response.status_code == 404
 
+
 # ============================================================================
 # Test WebSocket Connection
 # ============================================================================
+
 
 def test_websocket_connection():
     """Test basic WebSocket connection."""
@@ -143,11 +160,13 @@ def test_websocket_connection():
         assert message["data"]["status"] == "waiting"
         assert message["data"]["current_turn"] == "X"
 
+
 def test_websocket_invalid_room():
     """Test WebSocket connection to invalid room."""
     with pytest.raises(Exception):
         with client.websocket_connect("/ws/invalid-room/X") as websocket:
             pass
+
 
 def test_websocket_invalid_player():
     """Test WebSocket connection with invalid player symbol."""
@@ -158,9 +177,11 @@ def test_websocket_invalid_player():
         with client.websocket_connect(f"/ws/{room_id}/Z") as websocket:
             pass
 
+
 # ============================================================================
 # Test Full Game Simulation
 # ============================================================================
+
 
 def test_full_game_round():
     """
@@ -182,9 +203,10 @@ def test_full_game_round():
     room_id = create_response.json()["room_id"]
 
     # Connect both players
-    with client.websocket_connect(f"/ws/{room_id}/X") as ws_x, \
-         client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
-
+    with (
+        client.websocket_connect(f"/ws/{room_id}/X") as ws_x,
+        client.websocket_connect(f"/ws/{room_id}/O") as ws_o,
+    ):
         # Player X receives initial state (waiting)
         msg_x = json.loads(ws_x.receive_text())
         assert msg_x["data"]["status"] == "waiting"
@@ -254,14 +276,16 @@ def test_full_game_round():
         assert end_x["reason"] == "win"
         assert end_o["type"] == "game_ended"
 
+
 def test_invalid_move_not_your_turn():
     """Test that players can't move when it's not their turn."""
     create_response = client.post("/rooms")
     room_id = create_response.json()["room_id"]
 
-    with client.websocket_connect(f"/ws/{room_id}/X") as ws_x, \
-         client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
-
+    with (
+        client.websocket_connect(f"/ws/{room_id}/X") as ws_x,
+        client.websocket_connect(f"/ws/{room_id}/O") as ws_o,
+    ):
         # Clear initial messages
         ws_x.receive_text()  # X's initial state (waiting)
         ws_o.receive_text()  # O's initial state (active)
@@ -274,14 +298,16 @@ def test_invalid_move_not_your_turn():
         assert error_msg["type"] == "error"
         assert "Not your turn" in error_msg["message"]
 
+
 def test_invalid_move_position_occupied():
     """Test that players can't play on an occupied position."""
     create_response = client.post("/rooms")
     room_id = create_response.json()["room_id"]
 
-    with client.websocket_connect(f"/ws/{room_id}/X") as ws_x, \
-         client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
-
+    with (
+        client.websocket_connect(f"/ws/{room_id}/X") as ws_x,
+        client.websocket_connect(f"/ws/{room_id}/O") as ws_o,
+    ):
         # Clear initial messages
         ws_x.receive_text()  # X's initial state (waiting)
         ws_o.receive_text()  # O's initial state (active)
@@ -299,14 +325,16 @@ def test_invalid_move_position_occupied():
         assert error_msg["type"] == "error"
         assert "Invalid move" in error_msg["message"]
 
+
 def test_game_draw():
     """Test a game that ends in a draw."""
     create_response = client.post("/rooms")
     room_id = create_response.json()["room_id"]
 
-    with client.websocket_connect(f"/ws/{room_id}/X") as ws_x, \
-         client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
-
+    with (
+        client.websocket_connect(f"/ws/{room_id}/X") as ws_x,
+        client.websocket_connect(f"/ws/{room_id}/O") as ws_o,
+    ):
         # Clear initial messages
         ws_x.receive_text()  # X's initial state (waiting)
         ws_o.receive_text()  # O's initial state (active)
@@ -317,9 +345,15 @@ def test_game_draw():
         # X O O
         # O X X
         moves = [
-            (ws_x, 0), (ws_o, 1), (ws_x, 2),  # Row 1: X O X
-            (ws_o, 5), (ws_x, 3), (ws_o, 4),  # Row 2: X O O
-            (ws_x, 7), (ws_o, 6), (ws_x, 8)   # Row 3: O X X (draw)
+            (ws_x, 0),
+            (ws_o, 1),
+            (ws_x, 2),  # Row 1: X O X
+            (ws_o, 5),
+            (ws_x, 3),
+            (ws_o, 4),  # Row 2: X O O
+            (ws_x, 7),
+            (ws_o, 6),
+            (ws_x, 8),  # Row 3: O X X (draw)
         ]
 
         for websocket, position in moves[:-1]:
@@ -344,9 +378,11 @@ def test_game_draw():
         assert end_x["type"] == "game_ended"
         assert end_x["reason"] == "draw"
 
+
 # ============================================================================
 # Test Multiple Concurrent Games
 # ============================================================================
+
 
 def test_multiple_concurrent_games():
     """Test that multiple games can run concurrently."""
@@ -362,9 +398,10 @@ def test_multiple_concurrent_games():
     assert room2_id in games
 
     # Connect to both rooms
-    with client.websocket_connect(f"/ws/{room1_id}/X") as ws1_x, \
-         client.websocket_connect(f"/ws/{room2_id}/X") as ws2_x:
-
+    with (
+        client.websocket_connect(f"/ws/{room1_id}/X") as ws1_x,
+        client.websocket_connect(f"/ws/{room2_id}/X") as ws2_x,
+    ):
         msg1 = json.loads(ws1_x.receive_text())
         msg2 = json.loads(ws2_x.receive_text())
 
