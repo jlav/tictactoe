@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app, games, check_winner, check_draw, validate_move, GameState
+from main import app
+from app.storage import games
+from app.game import GameState, check_winner, check_draw, validate_move
 import json
 
 client = TestClient(app)
@@ -77,10 +79,11 @@ def test_validate_move():
 
 
 def test_root():
-    """Test root endpoint."""
+    """Test root endpoint serves static HTML."""
     response = client.get("/")
     assert response.status_code == 200
-    assert "Tic Tac Toe API" in response.json()["message"]
+    assert "text/html" in response.headers["content-type"]
+    assert "Tic Tac Toe" in response.text
 
 
 def test_create_room():
