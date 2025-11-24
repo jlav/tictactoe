@@ -46,4 +46,7 @@ I also would love to have added some more basic features like resetting the game
 and maybe a lobby system to see active games. I started on the reset feature, but Claude wasn't able to knock it out in
 a couple of tries. With the clock ticking I decided to keep working on the domain name.
 
+Last, there's no security at all. You can spoof which player you are to cheat. I'd like to at least add UUIDs for the
+as player identifiers that are kept secret so that it's not trivial to cheat.
+
 
