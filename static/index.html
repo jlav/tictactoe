@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Online Multiplayer</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tic Tac Toe</h1>
+            <p class="subtitle">Online Multiplayer</p>
+        </header>
+
+        <main>
+            <!-- Game Info Section -->
+            <div class="game-info">
+                <div class="info-card room-info">
+                    <h3>Room ID</h3>
+                    <div class="room-id-container">
+                        <span id="room-id" class="room-id">-</span>
+                        <button id="copy-btn" class="copy-btn" title="Copy shareable link">
+                            📋
+                        </button>
+                    </div>
+                    <p class="help-text">Share this link with a friend to play</p>
+                </div>
+
+                <div class="info-card player-info">
+                    <h3>You are</h3>
+                    <div id="player-symbol" class="player-symbol">-</div>
+                </div>
+
+                <div class="info-card status-info">
+                    <h3>Status</h3>
+                    <div id="game-status" class="game-status">Connecting...</div>
+                </div>
+            </div>
+
+            <!-- Game Board -->
+            <div class="board-container">
+                <div id="game-board" class="game-board">
+                    <div class="cell" data-index="0"></div>
+                    <div class="cell" data-index="1"></div>
+                    <div class="cell" data-index="2"></div>
+                    <div class="cell" data-index="3"></div>
+                    <div class="cell" data-index="4"></div>
+                    <div class="cell" data-index="5"></div>
+                    <div class="cell" data-index="6"></div>
+                    <div class="cell" data-index="7"></div>
+                    <div class="cell" data-index="8"></div>
+                </div>
+            </div>
+
+            <!-- Game Over Message -->
+            <div id="game-over" class="game-over hidden">
+                <div class="game-over-content">
+                    <h2 id="game-over-title">Game Over</h2>
+                    <p id="game-over-message"></p>
+                    <button id="new-game-btn" class="new-game-btn">Start New Game</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>
+                <a href="/docs" target="_blank">API Docs</a> |
+                Built with FastAPI & WebSockets
+            </p>
+        </footer>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 from uuid import uuid4, UUID
@@ -123,18 +124,6 @@ async def end_game(room_id: str, reason: str = "disconnection"):
 # ============================================================================
 # REST API Endpoints
 # ============================================================================
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Tic Tac Toe API",
-        "endpoints": {
-            "POST /rooms": "Create a new game room",
-            "GET /rooms/{room_id}": "Get room status",
-            "POST /rooms/{room_id}/join": "Join a game room",
-            "WS /ws/{room_id}/{player}": "WebSocket connection for gameplay"
-        }
-    }
 
 @app.post("/rooms", response_model=CreateRoomResponse)
 async def create_room():
@@ -277,3 +266,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player: str):
         # Handle any other errors
         game.players[player] = None
         await end_game(room_id, reason="error")
+
+# ============================================================================
+# Static Files - Mount after all API routes
+# ============================================================================
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")

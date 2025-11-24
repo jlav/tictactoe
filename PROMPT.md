@@ -12,7 +12,7 @@ Ensure that the server can handle multiple WebSocket connections for different g
 FE:
 Create a simple frontend using HTML, CSS, and JavaScript.
 The frontend should create a new game room when the user visits the page.
-Use query parameters to allow users to join an existing game room.
+Just use a query parameter to store the current room id, and allow users to share the link to invite another player.
 Display the tic tac toe board and allow players to click on cells to make moves.
 Use WebSockets to receive real-time updates from the server and update the game board accordingly.
 Show the current player's turn and display messages for game status (win, draw, etc.).
