@@ -263,8 +263,9 @@ def test_invalid_move_not_your_turn():
          client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
 
         # Clear initial messages
-        ws_x.receive_text()
-        ws_o.receive_text()
+        ws_x.receive_text()  # X's initial state (waiting)
+        ws_o.receive_text()  # O's initial state (active)
+        ws_x.receive_text()  # X's broadcast when O joins (active)
 
         # O tries to move (but it's X's turn)
         ws_o.send_text(json.dumps({"type": "move", "position": 0}))
@@ -282,8 +283,9 @@ def test_invalid_move_position_occupied():
          client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
 
         # Clear initial messages
-        ws_x.receive_text()
-        ws_o.receive_text()
+        ws_x.receive_text()  # X's initial state (waiting)
+        ws_o.receive_text()  # O's initial state (active)
+        ws_x.receive_text()  # X's broadcast when O joins (active)
 
         # X plays position 0
         ws_x.send_text(json.dumps({"type": "move", "position": 0}))
