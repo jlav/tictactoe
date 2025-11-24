@@ -306,8 +306,9 @@ def test_game_draw():
          client.websocket_connect(f"/ws/{room_id}/O") as ws_o:
 
         # Clear initial messages
-        ws_x.receive_text()
-        ws_o.receive_text()
+        ws_x.receive_text()  # X's initial state (waiting)
+        ws_o.receive_text()  # O's initial state (active)
+        ws_x.receive_text()  # X's broadcast when O joins (active)
 
         # Play a sequence that leads to a draw:
         # X O X

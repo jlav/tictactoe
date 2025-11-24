@@ -17,5 +17,6 @@ Display the tic tac toe board and allow players to click on cells to make moves.
 Use WebSockets to receive real-time updates from the server and update the game board accordingly.
 Show the current player's turn and display messages for game status (win, draw, etc.).
 Style the game board and interface for a better user experience.
+Serve the frontend files using FastAPI's StaticFiles.
 
 
