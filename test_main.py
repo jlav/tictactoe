@@ -3,6 +3,9 @@ from fastapi.testclient import TestClient
 from main import app
 from app.storage import games
 from app.game import GameState, check_winner, check_draw, validate_move
+from app.models import Theme
+from app.themes import DEFAULT_THEME_ID, get_theme, get_themes
+from pydantic import ValidationError
 import json
 
 client = TestClient(app)
@@ -413,3 +416,86 @@ def test_multiple_concurrent_games():
 
         # Verify they are separate games
         assert games[room1_id] != games[room2_id]
+
+
+# ============================================================================
+# Test Themes
+# ============================================================================
+
+
+def test_list_themes():
+    """Test listing available themes."""
+    response = client.get("/themes")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["default"] == DEFAULT_THEME_ID
+
+    theme_ids = [theme["id"] for theme in data["themes"]]
+    assert DEFAULT_THEME_ID in theme_ids
+    assert "farmyard" in theme_ids
+    assert len(theme_ids) == len(set(theme_ids))
+
+
+def test_get_classic_theme():
+    """Test that the default theme keeps the original X/O symbols."""
+    response = client.get(f"/themes/{DEFAULT_THEME_ID}")
+    assert response.status_code == 200
+
+    theme = response.json()
+    assert theme["symbols"] == {"X": "X", "O": "O"}
+    assert theme["text"]["title"] == "Tic Tac Toe"
+
+
+def test_get_farmyard_theme():
+    """Test the farmyard theme replaces X/O with farm animals."""
+    response = client.get("/themes/farmyard")
+    assert response.status_code == 200
+
+    theme = response.json()
+    assert theme["name"] == "Farmyard"
+    assert theme["symbols"]["X"] == "🐄"
+    assert theme["symbols"]["O"] == "🐓"
+    assert theme["colors"]["--primary-color"] == "#B5451B"
+
+
+def test_get_theme_not_found():
+    """Test getting a theme that does not exist."""
+    response = client.get("/themes/not-a-theme")
+    assert response.status_code == 404
+
+
+def test_theme_colors_are_css_variables():
+    """Test every theme color is a CSS custom property name."""
+    for theme in get_themes():
+        assert theme.colors
+        for name in theme.colors:
+            assert name.startswith("--")
+
+
+def test_theme_rejects_non_css_variable_color():
+    """Test theme validation rejects colors that are not CSS variables."""
+    classic = get_theme(DEFAULT_THEME_ID)
+
+    with pytest.raises(ValidationError):
+        Theme(
+            id="broken",
+            name="Broken",
+            symbols=classic.symbols,
+            icons=classic.icons,
+            text=classic.text,
+            colors={"primary-color": "#000000"},
+        )
+
+
+def test_themes_define_the_same_colors():
+    """Test all themes override the same set of CSS variables."""
+    color_keys = [set(theme.colors) for theme in get_themes()]
+    assert all(keys == color_keys[0] for keys in color_keys)
+
+
+def test_index_includes_theme_picker():
+    """Test the frontend exposes the theme dropdown."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'id="theme-select"' in response.text
