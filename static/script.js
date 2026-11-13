@@ -22,11 +22,13 @@ const THEMES = {
         label: 'Classic',
         playerX: { symbol: 'X', name: 'Player X' },
         playerO: { symbol: 'O', name: 'Player O' },
+        icons: { copy: '📋', copied: '✓', win: '🎉' },
     },
     farmyard: {
         label: 'Farmyard',
         playerX: { symbol: '🐓', name: 'Rooster' },
         playerO: { symbol: '🐑', name: 'Sheep' },
+        icons: { copy: '🧺', copied: '🌻', win: '🐓' },
     },
 };
 
@@ -71,6 +73,7 @@ function applyTheme(theme) {
     currentTheme = theme;
     document.body.classList.toggle('theme-farmyard', theme === 'farmyard');
     localStorage.setItem(THEME_STORAGE_KEY, theme);
+    copyBtn.textContent = getIcon('copy');
     renderPlayerInfo();
     updateBoard();
 }
@@ -85,6 +88,10 @@ function getPlayerSymbol(player) {
 
 function getPlayerName(player) {
     return THEMES[currentTheme][`player${player}`].name;
+}
+
+function getIcon(name) {
+    return THEMES[currentTheme].icons[name];
 }
 
 async function init() {
@@ -321,7 +328,7 @@ function handleGameEnd(message) {
 
     if (message.reason === 'win') {
         if (gameState.winner === playerId) {
-            title = 'You Win! 🎉';
+            title = `You Win! ${getIcon('win')}`;
             messageText = 'Congratulations!';
         } else {
             title = 'You Lose';
@@ -387,11 +394,11 @@ function handleCopyLink() {
 
     navigator.clipboard.writeText(url).then(() => {
         // Show success feedback
-        copyBtn.textContent = '✓';
+        copyBtn.textContent = getIcon('copied');
         copyBtn.classList.add('copied');
 
         setTimeout(() => {
-            copyBtn.textContent = '📋';
+            copyBtn.textContent = getIcon('copy');
             copyBtn.classList.remove('copied');
         }, 2000);
     }).catch(err => {

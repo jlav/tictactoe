@@ -118,9 +118,13 @@ def test_farmyard_theme_symbols_in_script():
     # Themed player names
     assert "Rooster" in response.text
     assert "Sheep" in response.text
+    # Themed UI icons
+    assert "icons" in response.text
+    assert "🧺" in response.text
     # Theme switching helpers
     assert "applyTheme" in response.text
     assert "getPlayerSymbol" in response.text
+    assert "getIcon" in response.text
     assert "theme-farmyard" in response.text
 
 
@@ -190,7 +194,7 @@ const window = { location: { search: "" } };
 const source = fs.readFileSync(process.argv[2], "utf8");
 const code =
     source +
-    "\nglobalThis.__theme = { THEMES, getPlayerSymbol, getPlayerName, applyTheme, getCurrentTheme: () => currentTheme };";
+    "\nglobalThis.__theme = { THEMES, getPlayerSymbol, getPlayerName, getIcon, applyTheme, getCurrentTheme: () => currentTheme };";
 const context = {
     document,
     localStorage,
@@ -204,11 +208,13 @@ vm.createContext(context);
 vm.runInContext(code, context);
 
 const t = context.__theme;
+const copyBtn = document.getElementById("copy-btn");
 const results = {
     themes: Object.keys(t.THEMES),
     classicSymbolX: t.getPlayerSymbol("X"),
     classicSymbolO: t.getPlayerSymbol("O"),
     classicNameX: t.getPlayerName("X"),
+    classicCopyIcon: t.getIcon("copy"),
 };
 t.applyTheme("farmyard");
 results.currentTheme = t.getCurrentTheme();
@@ -216,10 +222,14 @@ results.farmyardSymbolX = t.getPlayerSymbol("X");
 results.farmyardSymbolO = t.getPlayerSymbol("O");
 results.farmyardNameX = t.getPlayerName("X");
 results.farmyardNameO = t.getPlayerName("O");
+results.farmyardCopyIcon = t.getIcon("copy");
+results.farmyardWinIcon = t.getIcon("win");
+results.copyBtnTextAfterFarmyard = copyBtn.textContent;
 results.bodyHasFarmyardClass = context.document.body.classList.contains("theme-farmyard");
 results.storedTheme = localStorage.getItem("tictactoe-theme");
 t.applyTheme("classic");
 results.bodyHasFarmyardAfterReset = context.document.body.classList.contains("theme-farmyard");
+results.copyBtnTextAfterClassic = copyBtn.textContent;
 
 console.log(JSON.stringify(results));
 """
@@ -246,17 +256,24 @@ def test_theme_logic_executes(tmp_path):
     data = json.loads(result.stdout)
     assert set(data["themes"]) >= {"classic", "farmyard"}
 
-    # Classic theme shows the traditional X/O symbols
+    # Classic theme shows the traditional X/O symbols and icons
     assert data["classicSymbolX"] == "X"
     assert data["classicSymbolO"] == "O"
     assert data["classicNameX"] == "Player X"
+    assert data["classicCopyIcon"] == "📋"
 
-    # Farmyard theme swaps in farm animals and themed names
+    # Farmyard theme swaps in farm animals, themed names, and icons
     assert data["currentTheme"] == "farmyard"
     assert data["farmyardSymbolX"] == "🐓"
     assert data["farmyardSymbolO"] == "🐑"
     assert data["farmyardNameX"] == "Rooster"
     assert data["farmyardNameO"] == "Sheep"
+    assert data["farmyardCopyIcon"] == "🧺"
+    assert data["farmyardWinIcon"] == "🐓"
+
+    # The copy button icon is updated when the theme changes
+    assert data["copyBtnTextAfterFarmyard"] == "🧺"
+    assert data["copyBtnTextAfterClassic"] == "📋"
 
     # Theme is applied to the body and persisted
     assert data["bodyHasFarmyardClass"] is True
