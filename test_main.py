@@ -1,3 +1,7 @@
+import os
+import shutil
+import subprocess
+
 import pytest
 from fastapi.testclient import TestClient
 from main import app
@@ -84,6 +88,182 @@ def test_root():
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "Tic Tac Toe" in response.text
+
+
+# ============================================================================
+# Test Themes
+# ============================================================================
+
+
+def test_theme_dropdown_in_page():
+    """Test the theme selector dropdown is present in the served page."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'id="theme-select"' in response.text
+    assert 'name="theme-select"' in response.text or 'aria-label="Select theme"' in response.text
+    assert 'value="classic"' in response.text
+    assert 'value="farmyard"' in response.text
+    assert "Farmyard" in response.text
+
+
+def test_farmyard_theme_symbols_in_script():
+    """Test the farmyard theme with farm animal symbols is defined in script.js."""
+    response = client.get("/script.js")
+    assert response.status_code == 200
+    assert "THEMES" in response.text
+    assert "farmyard" in response.text
+    # Farm animals in place of X/O
+    assert "🐓" in response.text
+    assert "🐑" in response.text
+    # Themed player names
+    assert "Rooster" in response.text
+    assert "Sheep" in response.text
+    # Theme switching helpers
+    assert "applyTheme" in response.text
+    assert "getPlayerSymbol" in response.text
+    assert "theme-farmyard" in response.text
+
+
+def test_farmyard_theme_styles_in_css():
+    """Test the farmyard theme styles are defined in style.css."""
+    response = client.get("/style.css")
+    assert response.status_code == 200
+    assert "theme-farmyard" in response.text
+    # Farmyard color scheme variables
+    assert "--bg-gradient" in response.text
+    assert "linear-gradient" in response.text
+    assert "#D97706" in response.text  # farmyard amber
+    assert "#65A30D" in response.text  # farmyard green
+
+
+THEME_HARNESS = r"""
+const fs = require("fs");
+const vm = require("vm");
+
+function makeEl() {
+    const classes = new Set();
+    return {
+        textContent: "",
+        className: "",
+        value: "",
+        title: "",
+        classList: {
+            add: (...cs) => cs.forEach((c) => classes.add(c)),
+            remove: (...cs) => cs.forEach((c) => classes.delete(c)),
+            contains: (c) => classes.has(c),
+            toggle: (c, on) => {
+                if (on === undefined) {
+                    classes.has(c) ? classes.delete(c) : classes.add(c);
+                } else if (on) {
+                    classes.add(c);
+                } else {
+                    classes.delete(c);
+                }
+            },
+        },
+    };
+}
+
+const elements = new Map();
+const document = {
+    getElementById(id) {
+        if (!elements.has(id)) elements.set(id, makeEl());
+        return elements.get(id);
+    },
+    querySelectorAll() {
+        return [];
+    },
+    addEventListener() {},
+    body: makeEl(),
+};
+const localStorage = {
+    _data: {},
+    getItem(k) {
+        return k in this._data ? this._data[k] : null;
+    },
+    setItem(k, v) {
+        this._data[k] = String(v);
+    },
+};
+const window = { location: { search: "" } };
+
+const source = fs.readFileSync(process.argv[2], "utf8");
+const code =
+    source +
+    "\nglobalThis.__theme = { THEMES, getPlayerSymbol, getPlayerName, applyTheme, getCurrentTheme: () => currentTheme };";
+const context = {
+    document,
+    localStorage,
+    window,
+    console,
+    WebSocket: function () {},
+    URLSearchParams,
+    Set,
+};
+vm.createContext(context);
+vm.runInContext(code, context);
+
+const t = context.__theme;
+const results = {
+    themes: Object.keys(t.THEMES),
+    classicSymbolX: t.getPlayerSymbol("X"),
+    classicSymbolO: t.getPlayerSymbol("O"),
+    classicNameX: t.getPlayerName("X"),
+};
+t.applyTheme("farmyard");
+results.currentTheme = t.getCurrentTheme();
+results.farmyardSymbolX = t.getPlayerSymbol("X");
+results.farmyardSymbolO = t.getPlayerSymbol("O");
+results.farmyardNameX = t.getPlayerName("X");
+results.farmyardNameO = t.getPlayerName("O");
+results.bodyHasFarmyardClass = context.document.body.classList.contains("theme-farmyard");
+results.storedTheme = localStorage.getItem("tictactoe-theme");
+t.applyTheme("classic");
+results.bodyHasFarmyardAfterReset = context.document.body.classList.contains("theme-farmyard");
+
+console.log(JSON.stringify(results));
+"""
+
+
+def test_theme_logic_executes(tmp_path):
+    """Execute the real theme logic in Node and verify switching works."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is not available to execute JavaScript theme logic")
+
+    script_path = os.path.join(os.path.dirname(__file__), "static", "script.js")
+    harness_path = tmp_path / "theme_harness.js"
+    harness_path.write_text(THEME_HARNESS)
+
+    result = subprocess.run(
+        [node, str(harness_path), script_path],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+
+    data = json.loads(result.stdout)
+    assert set(data["themes"]) >= {"classic", "farmyard"}
+
+    # Classic theme shows the traditional X/O symbols
+    assert data["classicSymbolX"] == "X"
+    assert data["classicSymbolO"] == "O"
+    assert data["classicNameX"] == "Player X"
+
+    # Farmyard theme swaps in farm animals and themed names
+    assert data["currentTheme"] == "farmyard"
+    assert data["farmyardSymbolX"] == "🐓"
+    assert data["farmyardSymbolO"] == "🐑"
+    assert data["farmyardNameX"] == "Rooster"
+    assert data["farmyardNameO"] == "Sheep"
+
+    # Theme is applied to the body and persisted
+    assert data["bodyHasFarmyardClass"] is True
+    assert data["storedTheme"] == "farmyard"
+
+    # Switching back to classic removes the farmyard styling
+    assert data["bodyHasFarmyardAfterReset"] is False
 
 
 def test_create_room():

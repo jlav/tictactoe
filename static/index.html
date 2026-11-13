@@ -11,6 +11,13 @@
         <header>
             <h1>Tic Tac Toe</h1>
             <p class="subtitle">Online Multiplayer</p>
+            <div class="theme-selector">
+                <label for="theme-select">Theme</label>
+                <select id="theme-select" aria-label="Select theme">
+                    <option value="classic">Classic</option>
+                    <option value="farmyard">Farmyard</option>
+                </select>
+            </div>
         </header>
 
         <main>
@@ -30,6 +37,7 @@
                 <div class="info-card player-info">
                     <h3>You are</h3>
                     <div id="player-symbol" class="player-symbol">-</div>
+                    <div id="player-name" class="player-name">Player</div>
                 </div>
 
                 <div class="info-card status-info">
