@@ -3,9 +3,16 @@
 from fastapi import APIRouter, HTTPException
 from uuid import uuid4
 
-from .models import CreateRoomResponse, JoinRoomResponse, GameStateResponse
+from .models import (
+    CreateRoomResponse,
+    JoinRoomResponse,
+    GameStateResponse,
+    Theme,
+    ThemesResponse,
+)
 from .game import GameState
 from .storage import games
+from .themes import DEFAULT_THEME_ID, get_theme, get_themes
 
 router = APIRouter()
 
@@ -46,3 +53,20 @@ async def join_room(room_id: str):
         raise HTTPException(status_code=400, detail="Room is full")
 
     return JoinRoomResponse(player="O")
+
+
+@router.get("/themes", response_model=ThemesResponse)
+async def list_themes():
+    """List the available themes and the ID of the default one."""
+    return ThemesResponse(default=DEFAULT_THEME_ID, themes=get_themes())
+
+
+@router.get("/themes/{theme_id}", response_model=Theme)
+async def get_theme_by_id(theme_id: str):
+    """Get a single theme by ID."""
+    theme = get_theme(theme_id)
+
+    if theme is None:
+        raise HTTPException(status_code=404, detail="Theme not found")
+
+    return theme

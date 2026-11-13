@@ -38,6 +38,7 @@ tictactoe/
 │   ├── __init__.py        # Package marker
 │   ├── models.py          # Pydantic schemas (request/response)
 │   ├── game.py            # GameState class + game logic
+│   ├── themes.py          # Built-in theme definitions
 │   ├── storage.py         # In-memory games dictionary
 │   ├── routes.py          # REST API endpoints (APIRouter)
 │   └── websocket.py       # WebSocket handler (APIRouter)
@@ -74,13 +75,20 @@ tictactoe/
 - `broadcast_state()` - Sends game state to all players
 - `end_game()` - Handles game termination
 
+**app/themes.py** (~100 lines)
+- `THEMES` - List of built-in themes ("classic", "farmyard")
+- `DEFAULT_THEME_ID` - Theme used when the player has not chosen one
+- `get_themes()` / `get_theme(theme_id)` - Theme lookup
+
 **app/storage.py** (~5 lines)
 - `games` - Dict[str, GameState] for active games
 
-**app/routes.py** (~45 lines)
+**app/routes.py** (~70 lines)
 - `POST /rooms` - Create new game room
 - `GET /rooms/{room_id}` - Get room status
 - `POST /rooms/{room_id}/join` - Join existing room
+- `GET /themes` - List themes and the default theme ID
+- `GET /themes/{theme_id}` - Get a single theme
 
 **app/websocket.py** (~120 lines)
 - `WS /ws/{room_id}/{player}` - WebSocket endpoint
@@ -90,6 +98,7 @@ tictactoe/
 ### Frontend
 
 **static/index.html**
+- Theme dropdown (top right)
 - Game board (3x3 grid)
 - Room info display
 - Player role indicator
@@ -97,11 +106,13 @@ tictactoe/
 
 **static/style.css**
 - Modern/minimalist design
+- Themeable: all colors come from CSS custom properties that themes override
 - Responsive grid layout
 - Animations for moves and game states
 - Color palette: blues/greens/grays
 
 **static/script.js**
+- Theme loading, switching and persistence (localStorage)
 - Room creation/joining logic
 - WebSocket connection management
 - Move validation and sending
@@ -204,6 +215,11 @@ app.include_router(ws_router)
 2. Update tests in `test_main.py`
 3. No changes needed to routes/websocket (unless API changes)
 
+### Adding a New Theme
+1. Append a `Theme` to `THEMES` in `app/themes.py`
+2. Define the same CSS custom properties as the other themes (keys must start with `--`)
+3. No frontend changes needed - the dropdown is built from `GET /themes`
+
 ### Adding New WebSocket Message Type
 1. Add handler in `app/websocket.py` under message type checks
 2. Define message structure in docstring/comments
@@ -295,6 +311,7 @@ from app.storage import games
 5. **WebSocket Lifecycle:** Games are cleaned up on disconnection but kept on win/draw for restart.
 6. **UUID Room IDs:** Auto-generated, cannot be custom. Prevents collision, enables sharing.
 7. **Query Parameter Rooms:** Frontend uses `?room=uuid` for shareable links.
+8. **Themes Are Presentation Only:** The board is always stored as "X"/"O" server-side; themes only change how those values are displayed.
 
 ## Troubleshooting
 
