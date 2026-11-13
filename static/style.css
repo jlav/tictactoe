@@ -26,11 +26,30 @@
     --danger: #E74C3C;
     --player-x: #4A90E2;
     --player-o: #E74C3C;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Farmyard theme: warm earth tones and barnyard colors */
+body.theme-farmyard {
+    --primary-color: #D97706;
+    --primary-dark: #B45309;
+    --secondary-color: #84CC16;
+    --background: #FDF3E3;
+    --surface: #FFFDF7;
+    --text-primary: #4B3621;
+    --text-secondary: #8B7355;
+    --border-color: #E7D8B5;
+    --success: #65A30D;
+    --warning: #D97706;
+    --danger: #B91C1C;
+    --player-x: #D97706;
+    --player-o: #65A30D;
+    --bg-gradient: linear-gradient(135deg, #7C2D12 0%, #D97706 50%, #65A30D 100%);
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--bg-gradient);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -65,6 +84,7 @@ body {
 }
 
 header {
+    position: relative;
     text-align: center;
     margin-bottom: 30px;
 }
@@ -80,6 +100,40 @@ h1 {
     font-size: 1rem;
     color: var(--text-secondary);
     font-weight: 400;
+}
+
+.theme-selector {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-selector label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+#theme-select {
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#theme-select:hover,
+#theme-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    outline: none;
 }
 
 /* ============================================================================
@@ -179,6 +233,13 @@ h1 {
 
 .player-symbol.O {
     color: var(--player-o);
+}
+
+.player-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 8px;
 }
 
 .game-status {
@@ -428,6 +489,12 @@ footer a:hover {
 
     h1 {
         font-size: 2rem;
+    }
+
+    .theme-selector {
+        position: static;
+        justify-content: center;
+        margin-top: 16px;
     }
 
     .game-info {

@@ -14,12 +14,37 @@ let gameState = {
 };
 
 // ============================================================================
+// Themes
+// ============================================================================
+
+const THEMES = {
+    classic: {
+        label: 'Classic',
+        playerX: { symbol: 'X', name: 'Player X' },
+        playerO: { symbol: 'O', name: 'Player O' },
+        icons: { copy: '📋', copied: '✓', win: '🎉' },
+    },
+    farmyard: {
+        label: 'Farmyard',
+        playerX: { symbol: '🐓', name: 'Rooster' },
+        playerO: { symbol: '🐑', name: 'Sheep' },
+        icons: { copy: '🧺', copied: '🌻', win: '🐓' },
+    },
+};
+
+const THEME_STORAGE_KEY = 'tictactoe-theme';
+
+let currentTheme = 'classic';
+
+// ============================================================================
 // DOM Elements
 // ============================================================================
 
 const roomIdElement = document.getElementById('room-id');
 const copyBtn = document.getElementById('copy-btn');
 const playerSymbolElement = document.getElementById('player-symbol');
+const playerNameElement = document.getElementById('player-name');
+const themeSelectElement = document.getElementById('theme-select');
 const gameStatusElement = document.getElementById('game-status');
 const gameBoardElement = document.getElementById('game-board');
 const cells = document.querySelectorAll('.cell');
@@ -32,7 +57,47 @@ const newGameBtn = document.getElementById('new-game-btn');
 // Initialization
 // ============================================================================
 
+function loadTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme && THEMES[savedTheme]) {
+        currentTheme = savedTheme;
+    }
+    themeSelectElement.value = currentTheme;
+    applyTheme(currentTheme);
+}
+
+function applyTheme(theme) {
+    if (!THEMES[theme]) {
+        return;
+    }
+    currentTheme = theme;
+    document.body.classList.toggle('theme-farmyard', theme === 'farmyard');
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    copyBtn.textContent = getIcon('copy');
+    renderPlayerInfo();
+    updateBoard();
+}
+
+function handleThemeChange(event) {
+    applyTheme(event.target.value);
+}
+
+function getPlayerSymbol(player) {
+    return THEMES[currentTheme][`player${player}`].symbol;
+}
+
+function getPlayerName(player) {
+    return THEMES[currentTheme][`player${player}`].name;
+}
+
+function getIcon(name) {
+    return THEMES[currentTheme].icons[name];
+}
+
 async function init() {
+    // Load saved theme before rendering
+    loadTheme();
+
     // Check if room ID is in URL
     const urlParams = new URLSearchParams(window.location.search);
     roomId = urlParams.get('room');
@@ -77,7 +142,7 @@ async function createRoom() {
 
         // Update UI
         updateRoomInfo();
-        updatePlayerInfo();
+        renderPlayerInfo();
 
         // Connect to WebSocket
         connectWebSocket();
@@ -115,7 +180,7 @@ async function joinRoom(roomId) {
 
         // Update UI
         updateRoomInfo();
-        updatePlayerInfo();
+        renderPlayerInfo();
 
         // Connect to WebSocket
         connectWebSocket();
@@ -206,7 +271,7 @@ function updateBoard() {
         if (value) {
             // Cell is occupied
             cell.classList.add(value, 'occupied');
-            cell.textContent = value;
+            cell.textContent = getPlayerSymbol(value);
         } else if (gameState.status !== 'active' || gameState.current_turn !== playerId) {
             // Disable cell if game not active or not player's turn
             cell.classList.add('disabled');
@@ -263,7 +328,7 @@ function handleGameEnd(message) {
 
     if (message.reason === 'win') {
         if (gameState.winner === playerId) {
-            title = 'You Win! 🎉';
+            title = `You Win! ${getIcon('win')}`;
             messageText = 'Congratulations!';
         } else {
             title = 'You Lose';
@@ -329,11 +394,11 @@ function handleCopyLink() {
 
     navigator.clipboard.writeText(url).then(() => {
         // Show success feedback
-        copyBtn.textContent = '✓';
+        copyBtn.textContent = getIcon('copied');
         copyBtn.classList.add('copied');
 
         setTimeout(() => {
-            copyBtn.textContent = '📋';
+            copyBtn.textContent = getIcon('copy');
             copyBtn.classList.remove('copied');
         }, 2000);
     }).catch(err => {
@@ -360,10 +425,12 @@ function updateRoomInfo() {
     }
 }
 
-function updatePlayerInfo() {
+function renderPlayerInfo() {
     if (playerId) {
-        playerSymbolElement.textContent = playerId;
+        playerSymbolElement.textContent = getPlayerSymbol(playerId);
+        playerSymbolElement.classList.remove('X', 'O');
         playerSymbolElement.classList.add(playerId);
+        playerNameElement.textContent = getPlayerName(playerId);
     }
 }
 
@@ -392,6 +459,9 @@ function setupEventListeners() {
 
     // New game button
     newGameBtn.addEventListener('click', handleNewGame);
+
+    // Theme selector
+    themeSelectElement.addEventListener('change', handleThemeChange);
 
     // Handle page unload
     window.addEventListener('beforeunload', () => {
